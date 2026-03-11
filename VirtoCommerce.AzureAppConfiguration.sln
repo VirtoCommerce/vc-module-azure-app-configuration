@@ -1,0 +1,49 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.3.11527.330 d18.3
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{80FADCE6-0BF2-42E0-9DD8-890AC2BE90C1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VirtoCommerce.AzureAppConfiguration.Web", "src\VirtoCommerce.AzureAppConfiguration.Web\VirtoCommerce.AzureAppConfiguration.Web.csproj", "{DE9D94A2-6010-4D45-BB62-D04EE31A520B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{E0B035BE-1EC0-4675-83C7-3D0DDF180C38}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VirtoCommerce.AzureAppConfiguration.Tests", "tests\VirtoCommerce.AzureAppConfiguration.Tests\VirtoCommerce.AzureAppConfiguration.Tests.csproj", "{9718F3B4-C1C1-4CD8-9ADF-3CD06089E101}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{94BB3EC5-CBF4-4D43-BB68-18537B103067}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		.gitignore = .gitignore
+		Directory.Build.props = Directory.Build.props
+		LICENSE = LICENSE
+		module.ignore = module.ignore
+		README.md = README.md
+		VirtoCommerce.AzureAppConfiguration.sln.DotSettings = VirtoCommerce.AzureAppConfiguration.sln.DotSettings
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DE9D94A2-6010-4D45-BB62-D04EE31A520B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DE9D94A2-6010-4D45-BB62-D04EE31A520B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DE9D94A2-6010-4D45-BB62-D04EE31A520B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DE9D94A2-6010-4D45-BB62-D04EE31A520B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9718F3B4-C1C1-4CD8-9ADF-3CD06089E101}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9718F3B4-C1C1-4CD8-9ADF-3CD06089E101}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9718F3B4-C1C1-4CD8-9ADF-3CD06089E101}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9718F3B4-C1C1-4CD8-9ADF-3CD06089E101}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{DE9D94A2-6010-4D45-BB62-D04EE31A520B} = {80FADCE6-0BF2-42E0-9DD8-890AC2BE90C1}
+		{9718F3B4-C1C1-4CD8-9ADF-3CD06089E101} = {E0B035BE-1EC0-4675-83C7-3D0DDF180C38}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E618BD79-79E1-4D42-AB64-8F24458A8359}
+	EndGlobalSection
+EndGlobal
