@@ -4,13 +4,13 @@
   <version>3.1000.0</version>
   <version-tag></version-tag>
 
-  <platformVersion>3.1002.0</platformVersion>
+  <platformVersion>3.1008.0-alpha.13222-vcst-4696-clean-modularity</platformVersion>
   <dependencies>
     <!--<dependency id="VirtoCommerce.Core" version="3.800.0" />-->
   </dependencies>
 
-  <title>VirtoCommerce AzureAppConfiguration</title>
-  <description>VirtoCommerce AzureAppConfiguration</description>
+  <title>Azure App Configuration</title>
+  <description>Allows using Azure App Configuration to externalize storage and management of your app settings for Virto Commerce</description>
 
   <authors>
     <author>Oleg Zhuk</author>
@@ -20,11 +20,12 @@
   </owners>
 
   <projectUrl>https://github.com/VirtoCommerce/vc-module-azure-app-configuration</projectUrl>
-  <iconUrl>Modules/$(VirtoCommerce.AzureAppConfiguration)/Content/logo.png</iconUrl>
+  <iconUrl>Modules/$(VirtoCommerce.AzureAppConfiguration)/Content/app-configuration.png</iconUrl>
   <requireLicenseAcceptance>false</requireLicenseAcceptance>
 
   <assemblyFile>VirtoCommerce.AzureAppConfiguration.Web.dll</assemblyFile>
-  <moduleType>VirtoCommerce.AzureAppConfiguration.Web.Module, VirtoCommerce.AzureAppConfiguration.Web</moduleType>
+  <startupType>VirtoCommerce.AzureAppConfiguration.Web.PlatformStartup</startupType>
+  <moduleType>VirtoCommerce.AzureAppConfiguration.Web.Module</moduleType>
 
   <releaseNotes>First version.</releaseNotes>
   <copyright>Copyright © 2026 VirtoCommerce. All rights reserved</copyright>

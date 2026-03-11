@@ -1,46 +1,77 @@
-# AzureAppConfiguration
+# VirtoCommerce Azure App Configuration Module
 
 ## Overview
 
-Short overview of what the new module is.
+The **Azure App Configuration** module integrates [Microsoft Azure App Configuration](https://learn.microsoft.com/en-us/azure/azure-app-configuration/overview) service into the VirtoCommerce platform. It allows you to externalize storage and management of application settings, replacing or augmenting local `appsettings.json` files with a centralized, cloud-managed configuration store.
 
-- What is the new or updated experience?
+This module does not replace any existing module. It acts as an optional configuration source that layers on top of the standard .NET configuration pipeline. Once installed, all platform modules automatically gain access to settings stored in Azure App Configuration without any code changes.
 
-- Does this module replace an existing module/experience? If yes, what is the transition plan?
+### When to use this module
 
-- Does this module has dependency on other ? If yes, list/explain the dependencies.
+- **Centralized configuration management** — manage settings for multiple VirtoCommerce instances from a single Azure App Configuration resource.
+- **Multi-environment deployments** — use label-based filtering to serve different settings per environment (Development, Staging, Production) from one configuration store.
+- **Dynamic configuration updates** — change application settings at runtime without redeploying or restarting the platform, using the Sentinel key refresh mechanism.
+- **Azure-native infrastructure** — leverage Azure's built-in security, RBAC, encryption, and audit capabilities for configuration data.
 
-- List the key deployment scenarios - why would people use this module?
+## Key Features
 
-## Functional Requirements
+- **Early configuration pipeline integration** — registers as a `ConfigurationSource` at the highest startup priority, ensuring Azure-managed settings are available before any module initialization.
+- **Environment-aware key filtering** — automatically loads base keys (`KeyFilter.Any`) and environment-specific keys labeled with `IHostEnvironment.EnvironmentName`, allowing environment overrides.
+- **Sentinel-based configuration refresh** — monitors a configurable Sentinel key; when its value changes, all configuration entries are refreshed without application restart.
+- **Zero-code adoption** — no changes required in other modules; settings resolved through `IConfiguration` and `IOptions<T>` automatically pick up values from Azure App Configuration.
 
-Short description of the new module functional requirements.
+## Configuration
 
-## Scenarios
+### Prerequisites
 
-List of scenarios that the new module implements
+1. An [Azure App Configuration](https://learn.microsoft.com/en-us/azure/azure-app-configuration/quickstart-azure-app-configuration-create) resource in your Azure subscription.
+2. A connection string with read access to the resource.
 
-1. [Scenario 1](/doc/scenario-name1.md)
-1. [Scenario 2](/doc/scenario-name2.md)
-1. [Scenario 3](/doc/scenario-name3.md)
-    1. [Scenario 3.1](/doc/scenario-name31.md)
-    1. [Scenario 3.2](/doc/scenario-name32.md)
-1. [Scenario 4](/doc/scenario-name4.md)
+### Connection string
 
-## Web API
+Provide the Azure App Configuration connection string through any standard .NET configuration source (environment variable, Key Vault reference, or `appsettings.json`):
 
-Web API documentation for each module is built out automatically and can be accessed by following the link bellow:
-<https://link-to-swager-api>
+```json
+{
+  "ConnectionStrings": {
+    "AzureAppConfiguration": "Endpoint=https://<your-resource>.azconfig.io;Id=<id>;Secret=<secret>"
+  }
+}
+```
 
-## Database Model
+### Environment labels
 
-![DB model](./docs/media/diagram-db-model.png)
+Keys stored in Azure App Configuration can be labeled with the target environment name. The module automatically selects keys matching the current `ASPNETCORE_ENVIRONMENT` value:
 
-## Related topics
+| Label | Loaded when |
+|-------|------------|
+| *(no label)* | Always (base/default settings) |
+| `Development` | `ASPNETCORE_ENVIRONMENT=Development` |
+| `Staging` | `ASPNETCORE_ENVIRONMENT=Staging` |
+| `Production` | `ASPNETCORE_ENVIRONMENT=Production` |
 
-[Some Article1](some-article1.md)
+Environment-labeled keys take precedence over unlabeled keys.
 
-[Some Article2](some-article2.md)
+### Configuration refresh
+
+The module registers a **Sentinel** key for configuration refresh. To trigger a reload of all settings at runtime:
+
+1. Create a key named `Sentinel` in your Azure App Configuration resource.
+2. When you need to refresh settings, update the `Sentinel` value (any change triggers a full reload).
+
+## Documentation
+
+- [Azure App Configuration overview](https://learn.microsoft.com/en-us/azure/azure-app-configuration/overview)
+- [Use dynamic configuration in ASP.NET Core](https://learn.microsoft.com/en-us/azure/azure-app-configuration/enable-dynamic-configuration-aspnet-core)
+- [Azure App Configuration best practices](https://learn.microsoft.com/en-us/azure/azure-app-configuration/howto-best-practices)
+
+## References
+
+* [Deployment](https://docs.virtocommerce.org/platform/developer-guide/Tutorials-and-How-tos/Tutorials/deploy-module-from-source-code/)
+* [Installation](https://docs.virtocommerce.org/platform/user-guide/modules-installation/)
+* [Home](https://virtocommerce.com)
+* [Community](https://www.virtocommerce.org)
+* [Download latest release](https://github.com/VirtoCommerce/vc-module-catalog/releases/latest)
 
 ## License
 
@@ -50,9 +81,4 @@ Licensed under the Virto Commerce Open Software License (the "License"); you
 may not use this file except in compliance with the License. You may
 obtain a copy of the License at
 
-<https://virtocommerce.com/open-source-license>
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-implied.
+http://virtocommerce.com/opensourcelicense
