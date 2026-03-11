@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep -l \"TryGetAzureAppConfigurationConnectionString\\\\|Extensions\")",
+      "Bash(grep -rl \"AddHealthChecks\\\\|IHealthCheck\\\\|HealthCheckRegistration\" /c/Projects/git/VirtoCommerce/vc-module-*/src/)"
+    ]
+  }
+}
