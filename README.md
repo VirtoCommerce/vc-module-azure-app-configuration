@@ -1,4 +1,4 @@
-# VirtoCommerce Azure App Configuration Module
+# Azure App Configuration Module
 
 ## Overview
 
