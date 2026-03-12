@@ -20,7 +20,7 @@ public class PlatformStartup : IPlatformStartup
     public int Priority => StartupPriority.ConfigurationSource;
     public PipelinePhase Phase => PipelinePhase.EarlyMiddleware;
 
-    public void ConfigureAppConfiguration(IConfigurationBuilder builder, IHostEnvironment hostEnvironment)
+    public void ConfigureAppConfiguration(IConfigurationBuilder builder, IHostEnvironment env)
     {
         var logger = ModuleLogger.CreateLogger(typeof(PlatformStartup));
 
@@ -58,7 +58,7 @@ public class PlatformStartup : IPlatformStartup
 
             azureOptions
                 .Select(keyFilter)
-                .Select(keyFilter, hostEnvironment.EnvironmentName);
+                .Select(keyFilter, env.EnvironmentName);
 
             if (!string.IsNullOrWhiteSpace(options.KeyPrefix))
             {
