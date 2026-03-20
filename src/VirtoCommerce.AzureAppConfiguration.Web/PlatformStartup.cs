@@ -17,9 +17,6 @@ namespace VirtoCommerce.AzureAppConfiguration.Web;
 
 public class PlatformStartup : IPlatformStartup
 {
-    public int Priority => StartupPriority.ConfigurationSource;
-    public PipelinePhase Phase => PipelinePhase.EarlyMiddleware;
-
     public void ConfigureAppConfiguration(IConfigurationBuilder builder, IHostEnvironment env)
     {
         var logger = ModuleLogger.CreateLogger(typeof(PlatformStartup));
@@ -129,5 +126,9 @@ public class PlatformStartup : IPlatformStartup
         logger.LogInformation(
             "Azure App Configuration middleware is active. AuthMethod={AuthMethod}",
             options.HasConnectionString ? "ConnectionString" : "ManagedIdentity");
+    }
+
+    public void ConfigureHostServices(IServiceCollection services, IConfiguration config)
+    {
     }
 }

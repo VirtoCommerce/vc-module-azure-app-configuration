@@ -15,8 +15,8 @@
     <ProjectReference Include="..\VirtoCommerce.AzureAppConfiguration.Data\VirtoCommerce.AzureAppConfiguration.Data.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="VirtoCommerce.Platform.Data" Version="3.1008.0-alpha.13222-vcst-4696-clean-modularity" />
-    <PackageReference Include="VirtoCommerce.Platform.Modules" Version="3.1008.0-alpha.13222-vcst-4696-clean-modularity" />
+    <PackageReference Include="VirtoCommerce.Platform.Data" Version="3.1010.0-alpha.13258-vcst-4696-clean-modularity" />
+    <PackageReference Include="VirtoCommerce.Platform.Modules" Version="3.1010.0-alpha.13258-vcst-4696-clean-modularity" />
     <PackageReference Include="Microsoft.Extensions.Configuration.AzureAppConfiguration" Version="8.5.0" />
     <PackageReference Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="8.5.0" />
     <PackageReference Include="Azure.Identity" Version="1.13.1" />
