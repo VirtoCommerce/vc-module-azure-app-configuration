@@ -11,6 +11,7 @@ using VirtoCommerce.AzureAppConfiguration.Core;
 using VirtoCommerce.AzureAppConfiguration.Data.Extensions;
 using VirtoCommerce.AzureAppConfiguration.Data.HealthCheck;
 using VirtoCommerce.Platform.Core.Modularity;
+
 namespace VirtoCommerce.AzureAppConfiguration.Web;
 
 public class PlatformStartup : IPlatformStartup
