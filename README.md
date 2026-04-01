@@ -36,19 +36,7 @@ This module does not replace any existing module. It acts as an optional configu
 
 The module supports two authentication methods:
 
-**Option A: Managed Identity (recommended for Azure-hosted apps)**
-
-```json
-{
-  "AzureAppConfiguration": {
-    "Endpoint": "https://<your-resource>.azconfig.io"
-  }
-}
-```
-
-Uses `DefaultAzureCredential`, which automatically picks up Managed Identity, Azure CLI, Visual Studio, and other credential sources. No secrets to manage.
-
-**Option B: Connection string**
+**Option A: Connection string**
 
 ```json
 {
@@ -58,7 +46,7 @@ Uses `DefaultAzureCredential`, which automatically picks up Managed Identity, Az
 }
 ```
 
-**Option C: Legacy connection string (backward compatible)**
+**Option B: Legacy connection string (backward compatible)**
 
 ```json
 {
