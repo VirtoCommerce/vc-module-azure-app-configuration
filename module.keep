@@ -1,0 +1,10 @@
+Azure.Data.AppConfiguration.dll
+Azure.Messaging.EventGrid.dll
+Azure.Messaging.EventGrid.SystemEvents.dll
+Azure.Security.KeyVault.Secrets.dll
+DnsClient.dll
+Microsoft.Azure.AppConfiguration.AspNetCore.dll
+Microsoft.Bcl.HashCode.dll
+Microsoft.Extensions.Azure.dll
+Microsoft.Extensions.Configuration.AzureAppConfiguration.dll
+System.Security.Cryptography.ProtectedData.dll
