@@ -11,28 +11,31 @@ using VirtoCommerce.AzureAppConfiguration.Core;
 using VirtoCommerce.AzureAppConfiguration.Data.Extensions;
 using VirtoCommerce.AzureAppConfiguration.Data.HealthCheck;
 using VirtoCommerce.Platform.Core.Modularity;
-using VirtoCommerce.Platform.Modules;
-
 namespace VirtoCommerce.AzureAppConfiguration.Web;
 
 public class PlatformStartup : IPlatformStartup
 {
+    private static readonly ILoggerFactory _loggerFactory = LoggerFactory.Create(builder =>
+    {
+        builder.AddConsole();
+    });
+
+    private static readonly ILogger<PlatformStartup> _logger = _loggerFactory.CreateLogger<PlatformStartup>();
+
     public void ConfigureAppConfiguration(IConfigurationBuilder builder, IHostEnvironment env)
     {
-        var logger = ModuleLogger.CreateLogger(typeof(PlatformStartup));
-
         var config = builder.Build();
         var options = config.GetAzureAppConfigurationOptions();
 
         if (!options.Enabled)
         {
-            logger.LogInformation("Azure App Configuration is disabled via configuration");
+            _logger.LogInformation("Azure App Configuration is disabled via configuration");
             return;
         }
 
         if (!options.IsConfigured)
         {
-            logger.LogWarning("Azure App Configuration is not configured (no ConnectionString or Endpoint specified). Skipping");
+            _logger.LogWarning("Azure App Configuration is not configured (no ConnectionString or Endpoint specified). Skipping");
             return;
         }
 
@@ -40,12 +43,12 @@ public class PlatformStartup : IPlatformStartup
         {
             if (options.HasConnectionString)
             {
-                logger.LogDebug("Connecting to Azure App Configuration using connection string");
+                _logger.LogDebug("Connecting to Azure App Configuration using connection string");
                 azureOptions.Connect(options.ConnectionString);
             }
             else if (options.HasEndpoint)
             {
-                logger.LogDebug("Connecting to Azure App Configuration using DefaultAzureCredential at endpoint: {Endpoint}", options.Endpoint);
+                _logger.LogDebug("Connecting to Azure App Configuration using DefaultAzureCredential at endpoint: {Endpoint}", options.Endpoint);
                 azureOptions.Connect(new Uri(options.Endpoint), new DefaultAzureCredential());
             }
 
@@ -72,7 +75,7 @@ public class PlatformStartup : IPlatformStartup
                 }
             });
 
-            logger.LogDebug(
+            _logger.LogDebug(
                 "Azure App Configuration configured. {SentinelKey}, {KeyPrefix}, {RefreshInterval}",
                 options.SentinelKey,
                 options.KeyPrefix ?? "(Any)",
@@ -112,8 +115,6 @@ public class PlatformStartup : IPlatformStartup
 
     public void Configure(IApplicationBuilder app, IConfiguration configuration)
     {
-        var logger = ModuleLogger.CreateLogger(typeof(PlatformStartup));
-
         var options = configuration.GetAzureAppConfigurationOptions();
 
         if (!options.IsConfigured)
@@ -123,7 +124,7 @@ public class PlatformStartup : IPlatformStartup
 
         app.UseAzureAppConfiguration();
 
-        logger.LogInformation(
+        _logger.LogInformation(
             "Azure App Configuration middleware is active. AuthMethod={AuthMethod}",
             options.HasConnectionString ? "ConnectionString" : "ManagedIdentity");
     }
