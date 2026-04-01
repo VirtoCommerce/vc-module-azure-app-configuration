@@ -337,3 +337,5 @@ ASALocalRun/
 .nuke
 dist/
 **/Properties/launchSettings.json
+/.claude
+/.claude/settings.local.json
