@@ -4,7 +4,7 @@
   <version>3.1000.0</version>
   <version-tag></version-tag>
 
-  <platformVersion>3.1010.0-alpha.13258-vcst-4696-clean-modularity</platformVersion>
+  <platformVersion>3.1012.0-alpha.13292-vcst-4696-clean-modularity</platformVersion>
   <dependencies>
     <!--<dependency id="VirtoCommerce.Core" version="3.800.0" />-->
   </dependencies>
