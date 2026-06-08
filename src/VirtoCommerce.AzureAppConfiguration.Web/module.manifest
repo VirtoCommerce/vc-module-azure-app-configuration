@@ -20,7 +20,7 @@
   </owners>
 
   <projectUrl>https://github.com/VirtoCommerce/vc-module-azure-app-configuration</projectUrl>
-  <iconUrl>Modules/$(VirtoCommerce.AzureAppConfiguration)/Content/app-configuration.png</iconUrl>
+  <iconUrl>Modules/$(VirtoCommerce.AzureAppConfiguration)/Content/logo.svg</iconUrl>
   <requireLicenseAcceptance>false</requireLicenseAcceptance>
 
   <assemblyFile>VirtoCommerce.AzureAppConfiguration.Web.dll</assemblyFile>
