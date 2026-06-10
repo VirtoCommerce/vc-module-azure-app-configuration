@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using Azure.Core;
 using Azure.Identity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
@@ -54,8 +56,27 @@ public class PlatformStartup : IPlatformStartup
             }
             else if (options.HasEndpoint)
             {
-                _logger.LogDebug("Connecting to Azure App Configuration using DefaultAzureCredential at endpoint: {Endpoint}", options.Endpoint);
-                azureOptions.Connect(new Uri(options.Endpoint), credential);
+                var endpoints = options.GetEndpoints().Select(e => new Uri(e)).ToArray();
+
+                _logger.LogDebug(
+                    "Connecting to Azure App Configuration using {CredentialType} at {EndpointCount} endpoint(s): {Endpoints}",
+                    options.CredentialType,
+                    endpoints.Length,
+                    string.Join(", ", endpoints.AsEnumerable()));
+
+                // Pass all replica endpoints in preference order so the provider can automatically fail over
+                // between them during an outage, as Microsoft recommends for geo-replicated stores.
+                azureOptions.Connect(endpoints, credential);
+
+                // Spread requests across replicas over time to avoid exhausting a single replica's quota.
+                azureOptions.LoadBalancingEnabled = options.LoadBalancingEnabled;
+            }
+
+            if (options.StartupTimeout.HasValue)
+            {
+                // Bound the initial configuration load. The provider retries transient failures within this
+                // window before failing the platform boot — important because this module loads before all others.
+                azureOptions.ConfigureStartupOptions(startup => startup.Timeout = options.StartupTimeout.Value);
             }
 
             if (options.KeyVault.Enabled)
@@ -151,16 +172,27 @@ public class PlatformStartup : IPlatformStartup
 
         _logger.LogInformation(
             "Azure App Configuration middleware is active. AuthMethod={AuthMethod}",
-            options.HasConnectionString ? "ConnectionString" : "ManagedIdentity");
+            options.HasConnectionString ? "ConnectionString" : options.CredentialType.ToString());
     }
 
     public void ConfigureHostServices(IServiceCollection services, IConfiguration config)
     {
     }
 
-    private static DefaultAzureCredential CreateCredential(AzureAppConfigurationModuleOptions options)
+    private static TokenCredential CreateCredential(AzureAppConfigurationModuleOptions options)
     {
-        if (string.IsNullOrWhiteSpace(options.ManagedIdentityClientId))
+        var hasClientId = !string.IsNullOrWhiteSpace(options.ManagedIdentityClientId);
+
+        // ManagedIdentityCredential skips the DefaultAzureCredential probing chain — recommended for
+        // production workloads hosted in Azure (lower latency, no failed token attempts).
+        if (options.CredentialType == AzureCredentialType.ManagedIdentity)
+        {
+            return hasClientId
+                ? new ManagedIdentityCredential(options.ManagedIdentityClientId)
+                : new ManagedIdentityCredential();
+        }
+
+        if (!hasClientId)
         {
             return new DefaultAzureCredential();
         }
