@@ -42,6 +42,11 @@ public class PlatformStartup : IPlatformStartup
 
         builder.AddAzureAppConfiguration(azureOptions =>
         {
+            // A single credential is shared between App Configuration and Key Vault, as Microsoft recommends
+            // using the same managed identity for both. DefaultAzureCredential uses ManagedIdentityCredential
+            // in Azure and developer credentials locally; ManagedIdentityClientId targets a user-assigned identity.
+            var credential = CreateCredential(options);
+
             if (options.HasConnectionString)
             {
                 _logger.LogDebug("Connecting to Azure App Configuration using connection string");
@@ -50,7 +55,26 @@ public class PlatformStartup : IPlatformStartup
             else if (options.HasEndpoint)
             {
                 _logger.LogDebug("Connecting to Azure App Configuration using DefaultAzureCredential at endpoint: {Endpoint}", options.Endpoint);
-                azureOptions.Connect(new Uri(options.Endpoint), new DefaultAzureCredential());
+                azureOptions.Connect(new Uri(options.Endpoint), credential);
+            }
+
+            if (options.KeyVault.Enabled)
+            {
+                // Resolve Key Vault references stored in App Configuration. The app reads secrets from Key Vault
+                // directly, so a credential is required here regardless of how App Configuration itself authenticates.
+                azureOptions.ConfigureKeyVault(keyVaultOptions =>
+                {
+                    keyVaultOptions.SetCredential(credential);
+
+                    if (options.KeyVault.SecretRefreshInterval.HasValue)
+                    {
+                        keyVaultOptions.SetSecretRefreshInterval(options.KeyVault.SecretRefreshInterval.Value);
+                    }
+                });
+
+                _logger.LogDebug(
+                    "Azure Key Vault reference resolution enabled. {SecretRefreshInterval}",
+                    options.KeyVault.SecretRefreshInterval?.ToString() ?? "(no refresh)");
             }
 
             var keyFilter = string.IsNullOrWhiteSpace(options.KeyPrefix)
@@ -132,5 +156,18 @@ public class PlatformStartup : IPlatformStartup
 
     public void ConfigureHostServices(IServiceCollection services, IConfiguration config)
     {
+    }
+
+    private static DefaultAzureCredential CreateCredential(AzureAppConfigurationModuleOptions options)
+    {
+        if (string.IsNullOrWhiteSpace(options.ManagedIdentityClientId))
+        {
+            return new DefaultAzureCredential();
+        }
+
+        return new DefaultAzureCredential(new DefaultAzureCredentialOptions
+        {
+            ManagedIdentityClientId = options.ManagedIdentityClientId,
+        });
     }
 }

@@ -16,6 +16,7 @@ This module does not replace any existing module. It acts as an optional configu
 ## Key Features
 
 - **Managed Identity & connection string authentication** — supports both `DefaultAzureCredential` (recommended for Azure-hosted apps) and connection string authentication.
+- **Key Vault reference resolution** — automatically resolves [Key Vault references](https://learn.microsoft.com/en-us/azure/azure-app-configuration/use-key-vault-references-dotnet-core) stored in App Configuration, retrieving secret values directly from Azure Key Vault using `DefaultAzureCredential`.
 - **Early configuration pipeline integration** — registers as a `ConfigurationSource` at the highest startup priority, ensuring Azure-managed settings are available before any module initialization.
 - **Environment-aware key filtering** — automatically loads base keys and environment-specific keys labeled with `IHostEnvironment.EnvironmentName`, allowing environment overrides.
 - **Key prefix filtering** — optionally filter and trim key prefixes to scope configuration to your application.
@@ -70,6 +71,9 @@ All options are configured under the `AzureAppConfiguration` section in `appsett
 | `SentinelKey` | `string` | `"Sentinel"` | Key name used to trigger configuration refresh |
 | `RefreshInterval` | `TimeSpan` | SDK default (30s) | How often to poll for configuration changes |
 | `KeyPrefix` | `string` | — | Filter keys by prefix and trim it from loaded keys |
+| `ManagedIdentityClientId` | `string` | — | Client ID of a user-assigned managed identity used for both App Configuration and Key Vault. Leave empty to use the default credential chain (system-assigned identity / local dev) |
+| `KeyVault:Enabled` | `bool` | `true` | Enable resolution of Key Vault references stored in App Configuration |
+| `KeyVault:SecretRefreshInterval` | `TimeSpan` | — | How often resolved Key Vault secrets are reloaded (minimum 1 minute). When unset, secrets are cached for the application lifetime |
 
 **Full example:**
 
@@ -80,6 +84,11 @@ All options are configured under the `AzureAppConfiguration` section in `appsett
     "SentinelKey": "Sentinel",
     "RefreshInterval": "00:02:00",
     "KeyPrefix": "VirtoCommerce:",
+    "ManagedIdentityClientId": "",
+    "KeyVault": {
+      "Enabled": true,
+      "SecretRefreshInterval": "12:00:00"
+    },
     "Enabled": true
   }
 }
@@ -97,6 +106,40 @@ Keys stored in Azure App Configuration can be labeled with the target environmen
 | `Production` | `ASPNETCORE_ENVIRONMENT=Production` |
 
 Environment-labeled keys take precedence over unlabeled keys.
+
+### Key Vault references
+
+Azure App Configuration lets you store [Key Vault references](https://learn.microsoft.com/en-us/azure/azure-app-configuration/use-key-vault-references-dotnet-core) — keys whose values are pointers to secrets in Azure Key Vault. The module resolves these references automatically: once loaded, a Key Vault–backed setting is read through `IConfiguration` exactly like any other key, while the secret itself stays in Key Vault.
+
+App Configuration never reads your Key Vault on your behalf — the application connects to Key Vault directly. The module therefore configures the provider with a credential to authenticate Key Vault access, following the [Microsoft recommendation](https://learn.microsoft.com/en-us/azure/azure-app-configuration/reference-dotnet-provider#key-vault-reference). Resolution is enabled by default and can be turned off via `KeyVault:Enabled`.
+
+This credential is independent of the method used to connect to App Configuration. Even when App Configuration is reached via a connection string, Key Vault access still uses Microsoft Entra ID through `DefaultAzureCredential` (`ManagedIdentityCredential` when hosted in Azure, developer credentials locally). The module uses a **single shared credential** for both App Configuration and Key Vault, as Microsoft recommends using the same managed identity for both.
+
+**User-assigned managed identity.** For production, Microsoft recommends targeting an explicit identity rather than relying on the full credential-probing chain. Set `ManagedIdentityClientId` to the client ID of your user-assigned managed identity — it is applied to both App Configuration and Key Vault:
+
+```json
+{
+  "AzureAppConfiguration": {
+    "Endpoint": "https://myconfig.azconfig.io",
+    "ManagedIdentityClientId": "00000000-0000-0000-0000-000000000000"
+  }
+}
+```
+
+**Secret refresh.** A Key Vault reference URI in App Configuration is stable, but the underlying secret may be rotated. Set `KeyVault:SecretRefreshInterval` to periodically reload secrets from Key Vault (minimum 1 minute; otherwise secrets are cached for the application lifetime). This works alongside — and independently of — the Sentinel-based configuration refresh.
+
+> **Important:** If App Configuration contains Key Vault references but resolution is disabled (`KeyVault:Enabled = false`) or the credential cannot access the vault, the provider **throws at startup**. Either grant access, disable the offending references, or supply a custom secret resolver.
+
+**Grant access to Key Vault.** The identity running the platform must be able to read the referenced secrets. Assign the **Key Vault Secrets User** role to the app's managed identity (or developer account) on the target key vault:
+
+```azurecli
+az role assignment create \
+  --role "Key Vault Secrets User" \
+  --scope /subscriptions/<subscriptionId>/resourceGroups/<group>/providers/Microsoft.KeyVault/vaults/<vault-name> \
+  --assignee <managed-identity-or-user>
+```
+
+> **Note:** If your Key Vault references span multiple vaults that require different credentials, the single shared credential is not sufficient. In that case register per-vault `SecretClient` instances via `keyVaultOptions.Register(...)` or supply a custom resolver with `keyVaultOptions.SetSecretResolver(...)`. See the [.NET provider reference](https://learn.microsoft.com/en-us/azure/azure-app-configuration/reference-dotnet-provider#key-vault-reference).
 
 ### Configuration refresh
 
@@ -133,6 +176,7 @@ To enable verbose logging for troubleshooting, add the following to `appsettings
 | Warning | Azure App Configuration is not configured | No `ConnectionString` or `Endpoint` provided |
 | Debug | Connecting to Azure App Configuration using connection string | Connection string auth selected |
 | Debug | Connecting to Azure App Configuration using DefaultAzureCredential at endpoint: {Endpoint} | Managed Identity auth selected |
+| Debug | Azure Key Vault reference resolution enabled. {SecretRefreshInterval} | `KeyVault:Enabled` is `true` |
 | Debug | Azure App Configuration configured. {SentinelKey}, {KeyPrefix}, {RefreshInterval} | Provider successfully registered |
 | Information | Azure App Configuration middleware is active. AuthMethod={AuthMethod} | Middleware pipeline is ready |
 
@@ -142,6 +186,8 @@ To enable verbose logging for troubleshooting, add the following to `appsettings
 - [Use dynamic configuration in ASP.NET Core](https://learn.microsoft.com/en-us/azure/azure-app-configuration/enable-dynamic-configuration-aspnet-core)
 - [Azure App Configuration best practices](https://learn.microsoft.com/en-us/azure/azure-app-configuration/howto-best-practices)
 - [Use managed identities to access App Configuration](https://learn.microsoft.com/en-us/azure/azure-app-configuration/howto-integrate-azure-managed-service-identity)
+- [Use Key Vault references in an ASP.NET Core app](https://learn.microsoft.com/en-us/azure/azure-app-configuration/use-key-vault-references-dotnet-core)
+- [Reload secrets and certificates from Key Vault automatically](https://learn.microsoft.com/en-us/azure/azure-app-configuration/reload-key-vault-secrets-dotnet)
 
 ## References
 
