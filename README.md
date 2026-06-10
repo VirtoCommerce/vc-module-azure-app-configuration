@@ -98,6 +98,7 @@ All options are configured under the `AzureAppConfiguration` section in `appsett
 | `ManagedIdentityClientId` | `string` | — | Client ID of a user-assigned managed identity used for both App Configuration and Key Vault. Leave empty to use a system-assigned identity (or, with `Default`, the full credential chain) |
 | `KeyVault:Enabled` | `bool` | `true` | Enable resolution of Key Vault references stored in App Configuration |
 | `KeyVault:SecretRefreshInterval` | `TimeSpan` | — | How often resolved Key Vault secrets are reloaded (minimum 1 minute). When unset, secrets are cached for the application lifetime |
+| `Optional` | `bool` | `true` | When `true`, the platform starts normally even if Azure App Configuration is unreachable (e.g., quota exceeded, network issues). When `false`, a load failure will block platform startup |
 
 **Full example:**
 
@@ -113,7 +114,8 @@ All options are configured under the `AzureAppConfiguration` section in `appsett
       "Enabled": true,
       "SecretRefreshInterval": "12:00:00"
     },
-    "Enabled": true
+    "Enabled": true,
+    "Optional": true
   }
 }
 ```
@@ -244,6 +246,7 @@ To enable verbose logging for troubleshooting, add the following to `appsettings
 | Debug | Connecting to Azure App Configuration using {CredentialType} at {EndpointCount} endpoint(s): {Endpoints} | Entra ID auth selected |
 | Debug | Azure Key Vault reference resolution enabled. {SecretRefreshInterval} | `KeyVault:Enabled` is `true` |
 | Debug | Azure App Configuration configured. {SentinelKey}, {KeyPrefix}, {RefreshInterval} | Provider successfully registered |
+| Error | Failed to load Azure App Configuration. The platform will continue without it | Provider failed to load (`Optional` is `true`) |
 | Information | Azure App Configuration middleware is active. AuthMethod={AuthMethod} | Middleware pipeline is ready |
 
 ## Documentation

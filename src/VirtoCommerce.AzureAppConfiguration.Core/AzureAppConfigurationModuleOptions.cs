@@ -63,6 +63,8 @@ public class AzureAppConfigurationModuleOptions
     /// </summary>
     public KeyVaultOptions KeyVault { get; set; } = new();
 
+    public bool Optional { get; set; } = true;
+
     public bool HasConnectionString => !string.IsNullOrWhiteSpace(ConnectionString);
 
     public bool HasEndpoint => GetEndpoints().Count > 0;

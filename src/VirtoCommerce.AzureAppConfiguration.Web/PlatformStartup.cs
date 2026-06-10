@@ -125,7 +125,8 @@ public class PlatformStartup : IPlatformStartup
                 options.SentinelKey,
                 options.KeyPrefix ?? "(Any)",
                 options.RefreshInterval?.ToString() ?? "(default)");
-        });
+        },
+        optional: options.Optional);
     }
 
     public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
