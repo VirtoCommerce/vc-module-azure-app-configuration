@@ -1,7 +1,5 @@
 using System;
 using System.Linq;
-using Azure.Core;
-using Azure.Identity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.AzureAppConfiguration;
@@ -10,6 +8,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using VirtoCommerce.AzureAppConfiguration.Core;
+using VirtoCommerce.AzureAppConfiguration.Data;
 using VirtoCommerce.AzureAppConfiguration.Data.Extensions;
 using VirtoCommerce.AzureAppConfiguration.Data.HealthCheck;
 using VirtoCommerce.Platform.Core.Modularity;
@@ -47,7 +46,7 @@ public class PlatformStartup : IPlatformStartup
             // A single credential is shared between App Configuration and Key Vault, as Microsoft recommends
             // using the same managed identity for both. DefaultAzureCredential uses ManagedIdentityCredential
             // in Azure and developer credentials locally; ManagedIdentityClientId targets a user-assigned identity.
-            var credential = CreateCredential(options);
+            var credential = AzureCredentialFactory.Create(options);
 
             if (options.HasConnectionString)
             {
@@ -177,29 +176,5 @@ public class PlatformStartup : IPlatformStartup
 
     public void ConfigureHostServices(IServiceCollection services, IConfiguration config)
     {
-    }
-
-    private static TokenCredential CreateCredential(AzureAppConfigurationModuleOptions options)
-    {
-        var hasClientId = !string.IsNullOrWhiteSpace(options.ManagedIdentityClientId);
-
-        // ManagedIdentityCredential skips the DefaultAzureCredential probing chain — recommended for
-        // production workloads hosted in Azure (lower latency, no failed token attempts).
-        if (options.CredentialType == AzureCredentialType.ManagedIdentity)
-        {
-            return hasClientId
-                ? new ManagedIdentityCredential(options.ManagedIdentityClientId)
-                : new ManagedIdentityCredential();
-        }
-
-        if (!hasClientId)
-        {
-            return new DefaultAzureCredential();
-        }
-
-        return new DefaultAzureCredential(new DefaultAzureCredentialOptions
-        {
-            ManagedIdentityClientId = options.ManagedIdentityClientId,
-        });
     }
 }

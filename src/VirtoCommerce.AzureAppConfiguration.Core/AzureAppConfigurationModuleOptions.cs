@@ -83,33 +83,3 @@ public class AzureAppConfigurationModuleOptions
         return string.IsNullOrWhiteSpace(Endpoint) ? [] : [Endpoint];
     }
 }
-
-public enum AzureCredentialType
-{
-    /// <summary>
-    /// <c>DefaultAzureCredential</c> — probes managed identity, environment, and developer credentials in order.
-    /// Works in both Azure and local development. Recommended default.
-    /// </summary>
-    Default,
-
-    /// <summary>
-    /// <c>ManagedIdentityCredential</c> — uses only the managed identity, skipping the credential-probing chain.
-    /// Recommended for production deployments hosted in Azure (faster, no failed token attempts).
-    /// </summary>
-    ManagedIdentity,
-}
-
-public class KeyVaultOptions
-{
-    /// <summary>
-    /// Enables resolution of Key Vault references stored in App Configuration. When enabled, the app reads
-    /// the referenced secrets directly from Azure Key Vault using the configured credential. Default: <c>true</c>.
-    /// </summary>
-    public bool Enabled { get; set; } = true;
-
-    /// <summary>
-    /// Interval at which resolved Key Vault secrets are refreshed. When not set, secrets are cached for the
-    /// application lifetime, even if the underlying secret is rotated in Key Vault.
-    /// </summary>
-    public TimeSpan? SecretRefreshInterval { get; set; }
-}

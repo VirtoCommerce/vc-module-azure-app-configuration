@@ -1,8 +1,8 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Data.AppConfiguration;
-using Azure.Identity;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -55,6 +55,10 @@ public class AzureAppConfigurationHealthCheck : IHealthCheck
             return new ConfigurationClient(_options.ConnectionString);
         }
 
-        return new ConfigurationClient(new Uri(_options.Endpoint), new DefaultAzureCredential());
+        // Use the most preferred replica endpoint and the same credential as the configuration provider,
+        // so the health check reflects the identity the application actually authenticates with.
+        var endpoint = _options.GetEndpoints().First();
+
+        return new ConfigurationClient(new Uri(endpoint), AzureCredentialFactory.Create(_options));
     }
 }
