@@ -35,7 +35,7 @@ public class PlatformStartup : IPlatformStartup
             return;
         }
 
-        if (!options.IsConfigured)
+        if (!options.IsConfigured())
         {
             _logger.LogWarning("Azure App Configuration is not configured (no ConnectionString or Endpoint specified). Skipping");
             return;
@@ -48,12 +48,12 @@ public class PlatformStartup : IPlatformStartup
             // in Azure and developer credentials locally; ManagedIdentityClientId targets a user-assigned identity.
             var credential = AzureCredentialFactory.Create(options);
 
-            if (options.HasConnectionString)
+            if (options.HasConnectionString())
             {
                 _logger.LogDebug("Connecting to Azure App Configuration using connection string");
                 azureOptions.Connect(options.ConnectionString);
             }
-            else if (options.HasEndpoint)
+            else if (options.HasEndpoints())
             {
                 var endpoints = options.GetEndpoints().Select(e => new Uri(e)).ToArray();
 
@@ -138,14 +138,14 @@ public class PlatformStartup : IPlatformStartup
             {
                 config.GetSection(AzureAppConfigurationModuleOptions.SectionName).Bind(opts);
 
-                if (!opts.HasConnectionString
-                    && config.TryGetAzureAppConfigurationConnectionString(out var connectionString))
+                // Backward compatibility: the legacy platform connection string takes precedence (see GetAzureAppConfigurationOptions).
+                if (config.TryGetAzureAppConfigurationConnectionString(out var connectionString))
                 {
                     opts.ConnectionString = connectionString;
                 }
             });
 
-        if (!options.IsConfigured)
+        if (!options.IsConfigured())
         {
             return;
         }
@@ -163,7 +163,7 @@ public class PlatformStartup : IPlatformStartup
     {
         var options = configuration.GetAzureAppConfigurationOptions();
 
-        if (!options.IsConfigured)
+        if (!options.IsConfigured())
         {
             return;
         }
@@ -172,7 +172,7 @@ public class PlatformStartup : IPlatformStartup
 
         _logger.LogInformation(
             "Azure App Configuration middleware is active. AuthMethod={AuthMethod}",
-            options.HasConnectionString ? "ConnectionString" : options.CredentialType.ToString());
+            options.HasConnectionString() ? "ConnectionString" : options.CredentialType.ToString());
     }
 
     public void ConfigureHostServices(IServiceCollection services, IConfiguration config)

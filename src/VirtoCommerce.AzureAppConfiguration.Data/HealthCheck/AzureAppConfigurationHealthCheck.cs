@@ -25,7 +25,7 @@ public class AzureAppConfigurationHealthCheck : IHealthCheck
 
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
-        if (!_options.IsConfigured)
+        if (!_options.IsConfigured())
         {
             return HealthCheckResult.Healthy("Azure App Configuration is not configured");
         }
@@ -50,7 +50,7 @@ public class AzureAppConfigurationHealthCheck : IHealthCheck
 
     private ConfigurationClient CreateClient()
     {
-        if (_options.HasConnectionString)
+        if (_options.HasConnectionString())
         {
             return new ConfigurationClient(_options.ConnectionString);
         }

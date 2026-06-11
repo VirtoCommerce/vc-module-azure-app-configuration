@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 using VirtoCommerce.AzureAppConfiguration.Core;
+using VirtoCommerce.AzureAppConfiguration.Data;
 using VirtoCommerce.AzureAppConfiguration.Data.Extensions;
 using Xunit;
 
@@ -71,7 +72,7 @@ public class OptionsTests
         var options = new AzureAppConfigurationModuleOptions { Endpoint = "https://myconfig.azconfig.io" };
 
         Assert.Equal(["https://myconfig.azconfig.io"], options.GetEndpoints());
-        Assert.True(options.HasEndpoint);
+        Assert.True(options.HasEndpoints());
     }
 
     [Fact]
@@ -108,7 +109,37 @@ public class OptionsTests
         Assert.True(options.LoadBalancingEnabled);
         Assert.Equal(TimeSpan.FromMinutes(1), options.StartupTimeout);
         Assert.Equal(AzureCredentialType.ManagedIdentity, options.CredentialType);
-        Assert.True(options.IsConfigured);
+        Assert.True(options.IsConfigured());
+    }
+
+    [Fact]
+    public void GetOptions_LegacyConnectionString_TakesPrecedence()
+    {
+        // Backward compatibility with the platform's ConnectionStrings:AzureAppConfigurationConnectionString.
+        var configuration = BuildConfiguration(new Dictionary<string, string>
+        {
+            ["AzureAppConfiguration:ConnectionString"] = "Endpoint=https://module.azconfig.io;Id=x;Secret=y",
+            ["ConnectionStrings:AzureAppConfigurationConnectionString"] = "Endpoint=https://legacy.azconfig.io;Id=x;Secret=y",
+        });
+
+        var options = configuration.GetAzureAppConfigurationOptions();
+
+        Assert.Equal("Endpoint=https://legacy.azconfig.io;Id=x;Secret=y", options.ConnectionString);
+        Assert.True(options.HasConnectionString());
+        Assert.True(options.IsConfigured());
+    }
+
+    [Fact]
+    public void GetOptions_UsesSectionConnectionString_WhenNoLegacyKey()
+    {
+        var configuration = BuildConfiguration(new Dictionary<string, string>
+        {
+            ["AzureAppConfiguration:ConnectionString"] = "Endpoint=https://module.azconfig.io;Id=x;Secret=y",
+        });
+
+        var options = configuration.GetAzureAppConfigurationOptions();
+
+        Assert.Equal("Endpoint=https://module.azconfig.io;Id=x;Secret=y", options.ConnectionString);
     }
 
     private static IConfiguration BuildConfiguration(Dictionary<string, string> values) =>

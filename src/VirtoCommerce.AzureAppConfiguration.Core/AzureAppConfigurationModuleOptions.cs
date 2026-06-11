@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace VirtoCommerce.AzureAppConfiguration.Core;
 
@@ -63,25 +61,9 @@ public class AzureAppConfigurationModuleOptions
     /// </summary>
     public KeyVaultOptions KeyVault { get; set; } = new();
 
-    public bool Optional { get; set; } = true;
-
-    public bool HasConnectionString => !string.IsNullOrWhiteSpace(ConnectionString);
-
-    public bool HasEndpoint => GetEndpoints().Count > 0;
-
-    public bool IsConfigured => Enabled && (HasConnectionString || HasEndpoint);
-
     /// <summary>
-    /// Returns the effective list of endpoints in preference order: <see cref="Endpoints"/> when provided,
-    /// otherwise the single <see cref="Endpoint"/>.
+    /// When <c>true</c>, the App Configuration source is loaded optionally: a failure to connect at startup is
+    /// tolerated instead of failing the application boot. Default: <c>true</c>.
     /// </summary>
-    public IReadOnlyList<string> GetEndpoints()
-    {
-        if (Endpoints is { Length: > 0 })
-        {
-            return Endpoints.Where(e => !string.IsNullOrWhiteSpace(e)).ToArray();
-        }
-
-        return string.IsNullOrWhiteSpace(Endpoint) ? [] : [Endpoint];
-    }
+    public bool Optional { get; set; } = true;
 }

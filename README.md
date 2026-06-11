@@ -59,6 +59,8 @@ The module supports connection string and Microsoft Entra ID (Managed Identity) 
 }
 ```
 
+This is the key the VirtoCommerce platform used before App Configuration support moved into this module. It is honored as the **primary** connection string — when present, it takes precedence over `AzureAppConfiguration:ConnectionString` — so existing deployments keep working unchanged after installing the module.
+
 **Option C: Microsoft Entra ID (Managed Identity)**
 
 ```json
@@ -86,6 +88,7 @@ All options are configured under the `AzureAppConfiguration` section in `appsett
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `Enabled` | `bool` | `true` | Enable or disable the module |
+| `Optional` | `bool` | `true` | Load the App Configuration source optionally — tolerate a connection failure at startup instead of failing platform boot |
 | `ConnectionString` | `string` | — | Azure App Configuration connection string |
 | `Endpoint` | `string` | — | Azure App Configuration endpoint URI (for Managed Identity) |
 | `Endpoints` | `string[]` | — | Replica endpoint URIs in preference order, for geo-replication failover. Takes precedence over `Endpoint` |
