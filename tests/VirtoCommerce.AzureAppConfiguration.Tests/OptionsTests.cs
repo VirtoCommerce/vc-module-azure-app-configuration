@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 using VirtoCommerce.AzureAppConfiguration.Core;
-using VirtoCommerce.AzureAppConfiguration.Data;
 using VirtoCommerce.AzureAppConfiguration.Data.Extensions;
 using Xunit;
 

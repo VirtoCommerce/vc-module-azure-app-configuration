@@ -15,14 +15,9 @@ using VirtoCommerce.Platform.Core.Modularity;
 
 namespace VirtoCommerce.AzureAppConfiguration.Web;
 
-public class PlatformStartup : IPlatformStartup
+public class PlatformStartup : IPlatformStartup, IHasLogger
 {
-    private static readonly ILoggerFactory _loggerFactory = LoggerFactory.Create(builder =>
-    {
-        builder.AddConsole();
-    });
-
-    private static readonly ILogger<PlatformStartup> _logger = _loggerFactory.CreateLogger<PlatformStartup>();
+    public ILogger Logger { get; set; }
 
     public void ConfigureAppConfiguration(IConfigurationBuilder builder, IHostEnvironment env)
     {
@@ -31,13 +26,13 @@ public class PlatformStartup : IPlatformStartup
 
         if (!options.Enabled)
         {
-            _logger.LogInformation("Azure App Configuration is disabled via configuration");
+            Logger.LogInformation("Azure App Configuration is disabled via configuration");
             return;
         }
 
         if (!options.IsConfigured())
         {
-            _logger.LogWarning("Azure App Configuration is not configured (no ConnectionString or Endpoint specified). Skipping");
+            Logger.LogWarning("Azure App Configuration is not configured (no ConnectionString or Endpoint specified). Skipping");
             return;
         }
 
@@ -50,18 +45,18 @@ public class PlatformStartup : IPlatformStartup
 
             if (options.HasConnectionString())
             {
-                _logger.LogDebug("Connecting to Azure App Configuration using connection string");
+                Logger.LogDebug("Connecting to Azure App Configuration using connection string");
                 azureOptions.Connect(options.ConnectionString);
             }
             else if (options.HasEndpoints())
             {
                 var endpoints = options.GetEndpoints().Select(e => new Uri(e)).ToArray();
 
-                _logger.LogDebug(
+                Logger.LogDebug(
                     "Connecting to Azure App Configuration using {CredentialType} at {EndpointCount} endpoint(s): {Endpoints}",
                     options.CredentialType,
                     endpoints.Length,
-                    string.Join(", ", endpoints.AsEnumerable()));
+                    string.Join(", ", endpoints));
 
                 // Pass all replica endpoints in preference order so the provider can automatically fail over
                 // between them during an outage, as Microsoft recommends for geo-replicated stores.
@@ -92,7 +87,7 @@ public class PlatformStartup : IPlatformStartup
                     }
                 });
 
-                _logger.LogDebug(
+                Logger.LogDebug(
                     "Azure Key Vault reference resolution enabled. {SecretRefreshInterval}",
                     options.KeyVault.SecretRefreshInterval?.ToString() ?? "(no refresh)");
             }
@@ -120,7 +115,7 @@ public class PlatformStartup : IPlatformStartup
                 }
             });
 
-            _logger.LogDebug(
+            Logger.LogDebug(
                 "Azure App Configuration configured. {SentinelKey}, {KeyPrefix}, {RefreshInterval}",
                 options.SentinelKey,
                 options.KeyPrefix ?? "(Any)",
@@ -131,20 +126,19 @@ public class PlatformStartup : IPlatformStartup
 
     public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
-        var options = configuration.GetAzureAppConfigurationOptions();
-
         services.AddOptions<AzureAppConfigurationModuleOptions>()
-            .Configure<IConfiguration>((opts, config) =>
+            .Configure<IConfiguration>((options, config) =>
             {
-                config.GetSection(AzureAppConfigurationModuleOptions.SectionName).Bind(opts);
+                config.GetSection(AzureAppConfigurationModuleOptions.SectionName).Bind(options);
 
                 // Backward compatibility: the legacy platform connection string takes precedence (see GetAzureAppConfigurationOptions).
                 if (config.TryGetAzureAppConfigurationConnectionString(out var connectionString))
                 {
-                    opts.ConnectionString = connectionString;
+                    options.ConnectionString = connectionString;
                 }
             });
 
+        var options = configuration.GetAzureAppConfigurationOptions();
         if (!options.IsConfigured())
         {
             return;
@@ -170,7 +164,7 @@ public class PlatformStartup : IPlatformStartup
 
         app.UseAzureAppConfiguration();
 
-        _logger.LogInformation(
+        Logger.LogInformation(
             "Azure App Configuration middleware is active. AuthMethod={AuthMethod}",
             options.HasConnectionString() ? "ConnectionString" : options.CredentialType.ToString());
     }

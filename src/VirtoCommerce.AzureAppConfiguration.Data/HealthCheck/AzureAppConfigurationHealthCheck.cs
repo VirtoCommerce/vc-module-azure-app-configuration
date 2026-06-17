@@ -7,6 +7,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using VirtoCommerce.AzureAppConfiguration.Core;
+using VirtoCommerce.AzureAppConfiguration.Data.Extensions;
 
 namespace VirtoCommerce.AzureAppConfiguration.Data.HealthCheck;
 
@@ -33,6 +34,7 @@ public class AzureAppConfigurationHealthCheck : IHealthCheck
         try
         {
             var client = CreateClient();
+
             // Perform a lightweight read to verify connectivity
             await client.GetConfigurationSettingsAsync(new SettingSelector { KeyFilter = _options.SentinelKey }, cancellationToken)
                 .AsPages()

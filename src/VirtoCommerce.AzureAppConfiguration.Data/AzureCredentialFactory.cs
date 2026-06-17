@@ -1,4 +1,3 @@
-using System;
 using Azure.Core;
 using Azure.Identity;
 using VirtoCommerce.AzureAppConfiguration.Core;
@@ -21,9 +20,11 @@ public static class AzureCredentialFactory
         // production workloads hosted in Azure (lower latency, no failed token attempts).
         if (options.CredentialType == AzureCredentialType.ManagedIdentity)
         {
-            return hasClientId
-                ? new ManagedIdentityCredential(options.ManagedIdentityClientId)
-                : new ManagedIdentityCredential();
+            var managedIdentityId = hasClientId
+                ? ManagedIdentityId.FromUserAssignedClientId(options.ManagedIdentityClientId)
+                : ManagedIdentityId.SystemAssigned;
+
+            return new ManagedIdentityCredential(managedIdentityId);
         }
 
         if (!hasClientId)

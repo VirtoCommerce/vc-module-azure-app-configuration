@@ -15,11 +15,9 @@
     <ProjectReference Include="..\VirtoCommerce.AzureAppConfiguration.Data\VirtoCommerce.AzureAppConfiguration.Data.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="VirtoCommerce.Platform.Data" Version="3.1007.10" />
-    <PackageReference Include="VirtoCommerce.Platform.Modules" Version="3.1007.10" />
+    <PackageReference Include="VirtoCommerce.Platform.Modules" Version="3.1007.17" />
     <PackageReference Include="Microsoft.Extensions.Configuration.AzureAppConfiguration" Version="8.5.0" />
     <PackageReference Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="8.5.0" />
-    <PackageReference Include="Azure.Identity" Version="1.13.1" />
   </ItemGroup>
 
   <ItemGroup>

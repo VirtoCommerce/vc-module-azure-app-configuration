@@ -5,12 +5,6 @@ namespace VirtoCommerce.AzureAppConfiguration.Data.Extensions;
 
 public static class ConfigurationExtensions
 {
-    public static bool TryGetAzureAppConfigurationConnectionString(this IConfiguration configuration, out string connectionString)
-    {
-        connectionString = configuration.GetConnectionString("AzureAppConfigurationConnectionString");
-        return !string.IsNullOrWhiteSpace(connectionString);
-    }
-
     public static AzureAppConfigurationModuleOptions GetAzureAppConfigurationOptions(this IConfiguration configuration)
     {
         var section = configuration.GetSection(AzureAppConfigurationModuleOptions.SectionName);
@@ -25,5 +19,12 @@ public static class ConfigurationExtensions
         }
 
         return options;
+    }
+
+    public static bool TryGetAzureAppConfigurationConnectionString(this IConfiguration configuration, out string connectionString)
+    {
+        connectionString = configuration.GetConnectionString("AzureAppConfigurationConnectionString");
+
+        return !string.IsNullOrWhiteSpace(connectionString);
     }
 }

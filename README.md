@@ -88,7 +88,6 @@ All options are configured under the `AzureAppConfiguration` section in `appsett
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `Enabled` | `bool` | `true` | Enable or disable the module |
-| `Optional` | `bool` | `true` | Load the App Configuration source optionally — tolerate a connection failure at startup instead of failing platform boot |
 | `ConnectionString` | `string` | — | Azure App Configuration connection string |
 | `Endpoint` | `string` | — | Azure App Configuration endpoint URI (for Managed Identity) |
 | `Endpoints` | `string[]` | — | Replica endpoint URIs in preference order, for geo-replication failover. Takes precedence over `Endpoint` |
