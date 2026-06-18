@@ -15,7 +15,10 @@ This module does not replace any existing module. It acts as an optional configu
 
 ## Key Features
 
-- **Managed Identity & connection string authentication** — supports both `DefaultAzureCredential` (recommended for Azure-hosted apps) and connection string authentication.
+- **Managed Identity & connection string authentication** — supports `DefaultAzureCredential`, `ManagedIdentityCredential` (recommended for Azure-hosted production), and connection string authentication.
+- **Geo-replication failover & load balancing** — connect to multiple replica endpoints in preference order for automatic failover during regional outages, with optional load balancing to spread request load across replicas.
+- **Resilient startup** — configurable time-out for the initial configuration load, with built-in transient-fault retries during platform boot.
+- **Key Vault reference resolution** — automatically resolves [Key Vault references](https://learn.microsoft.com/en-us/azure/azure-app-configuration/use-key-vault-references-dotnet-core) stored in App Configuration, retrieving secret values directly from Azure Key Vault.
 - **Early configuration pipeline integration** — registers as a `ConfigurationSource` at the highest startup priority, ensuring Azure-managed settings are available before any module initialization.
 - **Environment-aware key filtering** — automatically loads base keys and environment-specific keys labeled with `IHostEnvironment.EnvironmentName`, allowing environment overrides.
 - **Key prefix filtering** — optionally filter and trim key prefixes to scope configuration to your application.
@@ -34,7 +37,7 @@ This module does not replace any existing module. It acts as an optional configu
 
 ### Authentication
 
-The module supports two authentication methods:
+The module supports connection string and Microsoft Entra ID (Managed Identity) authentication.
 
 **Option A: Connection string**
 
@@ -56,7 +59,27 @@ The module supports two authentication methods:
 }
 ```
 
-If both `ConnectionString` and `Endpoint` are specified, `ConnectionString` takes priority.
+This is the key the VirtoCommerce platform used before App Configuration support moved into this module. It is honored as the **primary** connection string — when present, it takes precedence over `AzureAppConfiguration:ConnectionString` — so existing deployments keep working unchanged after installing the module.
+
+**Option C: Microsoft Entra ID (Managed Identity)**
+
+```json
+{
+  "AzureAppConfiguration": {
+    "Endpoint": "https://<your-resource>.azconfig.io",
+    "CredentialType": "ManagedIdentity"
+  }
+}
+```
+
+`CredentialType` controls how the module authenticates to both App Configuration and Key Vault:
+
+- `Default` (`DefaultAzureCredential`) — probes managed identity, environment, and developer credentials in order. Works in Azure and locally; recommended for development.
+- `ManagedIdentity` (`ManagedIdentityCredential`) — uses only the managed identity, skipping the probing chain. [Microsoft recommends this for production](https://learn.microsoft.com/aspnet/core/security/key-vault-configuration#use-managed-identities-for-azure-resources) Azure-hosted workloads (lower latency, no failed token attempts).
+
+For a user-assigned managed identity, set `ManagedIdentityClientId` to its client ID (applies to both credential types).
+
+If both `ConnectionString` and `Endpoint`/`Endpoints` are specified, the connection string takes priority.
 
 ### Module options
 
@@ -67,9 +90,17 @@ All options are configured under the `AzureAppConfiguration` section in `appsett
 | `Enabled` | `bool` | `true` | Enable or disable the module |
 | `ConnectionString` | `string` | — | Azure App Configuration connection string |
 | `Endpoint` | `string` | — | Azure App Configuration endpoint URI (for Managed Identity) |
+| `Endpoints` | `string[]` | — | Replica endpoint URIs in preference order, for geo-replication failover. Takes precedence over `Endpoint` |
+| `LoadBalancingEnabled` | `bool` | `false` | Spread requests across configured replicas (only meaningful with multiple `Endpoints`) |
+| `StartupTimeout` | `TimeSpan` | SDK default | Time-out for the initial configuration load; the provider retries transient failures within this window before failing platform startup |
 | `SentinelKey` | `string` | `"Sentinel"` | Key name used to trigger configuration refresh |
 | `RefreshInterval` | `TimeSpan` | SDK default (30s) | How often to poll for configuration changes |
 | `KeyPrefix` | `string` | — | Filter keys by prefix and trim it from loaded keys |
+| `CredentialType` | `enum` | `Default` | `Default` (`DefaultAzureCredential`) or `ManagedIdentity` (`ManagedIdentityCredential`, recommended for Azure-hosted production) |
+| `ManagedIdentityClientId` | `string` | — | Client ID of a user-assigned managed identity used for both App Configuration and Key Vault. Leave empty to use a system-assigned identity (or, with `Default`, the full credential chain) |
+| `KeyVault:Enabled` | `bool` | `true` | Enable resolution of Key Vault references stored in App Configuration |
+| `KeyVault:SecretRefreshInterval` | `TimeSpan` | — | How often resolved Key Vault secrets are reloaded (minimum 1 minute). When unset, secrets are cached for the application lifetime |
+| `Optional` | `bool` | `true` | When `true`, the platform starts normally even if Azure App Configuration is unreachable (e.g., quota exceeded, network issues). When `false`, a load failure will block platform startup |
 
 **Full example:**
 
@@ -80,7 +111,13 @@ All options are configured under the `AzureAppConfiguration` section in `appsett
     "SentinelKey": "Sentinel",
     "RefreshInterval": "00:02:00",
     "KeyPrefix": "VirtoCommerce:",
-    "Enabled": true
+    "ManagedIdentityClientId": "",
+    "KeyVault": {
+      "Enabled": true,
+      "SecretRefreshInterval": "12:00:00"
+    },
+    "Enabled": true,
+    "Optional": true
   }
 }
 ```
@@ -97,6 +134,82 @@ Keys stored in Azure App Configuration can be labeled with the target environmen
 | `Production` | `ASPNETCORE_ENVIRONMENT=Production` |
 
 Environment-labeled keys take precedence over unlabeled keys.
+
+### Resiliency & high availability
+
+Applications rely on configuration to start, so Microsoft treats App Configuration availability as critical and recommends [building applications with high resiliency](https://learn.microsoft.com/en-us/azure/azure-app-configuration/howto-best-practices#building-applications-with-high-resiliency). The module exposes the provider's built-in resiliency features:
+
+**Geo-replication failover.** Microsoft's primary resiliency recommendation is to [enable geo-replication](https://learn.microsoft.com/en-us/azure/azure-app-configuration/howto-geo-replication) and let the application fail over between replicas. List your replica endpoints in `Endpoints` in order of preference — the provider connects to the most preferred available replica and automatically fails over to the next during an outage:
+
+```json
+{
+  "AzureAppConfiguration": {
+    "Endpoints": [
+      "https://myconfig-eastus.azconfig.io",
+      "https://myconfig-westeurope.azconfig.io"
+    ],
+    "CredentialType": "ManagedIdentity"
+  }
+}
+```
+
+`Endpoints` takes precedence over the single `Endpoint`. Failover applies to Entra ID authentication only (not connection strings).
+
+**Load balancing.** By default the provider always prefers the first replica. Set `LoadBalancingEnabled` to `true` to spread requests across all configured replicas over time — each replica has a separate request quota, so this improves scalability and avoids throttling:
+
+```json
+{
+  "AzureAppConfiguration": {
+    "Endpoints": [ "https://myconfig-eastus.azconfig.io", "https://myconfig-westeurope.azconfig.io" ],
+    "LoadBalancingEnabled": true
+  }
+}
+```
+
+**Startup time-out.** Because this module registers at the highest startup priority (before all other modules), a transient failure while loading configuration can block the entire platform boot. The provider retries transient failures during the initial load; use `StartupTimeout` to bound that window:
+
+```json
+{
+  "AzureAppConfiguration": {
+    "Endpoint": "https://myconfig.azconfig.io",
+    "StartupTimeout": "00:01:00"
+  }
+}
+```
+
+### Key Vault references
+
+Azure App Configuration lets you store [Key Vault references](https://learn.microsoft.com/en-us/azure/azure-app-configuration/use-key-vault-references-dotnet-core) — keys whose values are pointers to secrets in Azure Key Vault. The module resolves these references automatically: once loaded, a Key Vault–backed setting is read through `IConfiguration` exactly like any other key, while the secret itself stays in Key Vault.
+
+App Configuration never reads your Key Vault on your behalf — the application connects to Key Vault directly. The module therefore configures the provider with a credential to authenticate Key Vault access, following the [Microsoft recommendation](https://learn.microsoft.com/en-us/azure/azure-app-configuration/reference-dotnet-provider#key-vault-reference). Resolution is enabled by default and can be turned off via `KeyVault:Enabled`.
+
+This credential is independent of the method used to connect to App Configuration. Even when App Configuration is reached via a connection string, Key Vault access still uses Microsoft Entra ID through `DefaultAzureCredential` (`ManagedIdentityCredential` when hosted in Azure, developer credentials locally). The module uses a **single shared credential** for both App Configuration and Key Vault, as Microsoft recommends using the same managed identity for both.
+
+**User-assigned managed identity.** For production, Microsoft recommends targeting an explicit identity rather than relying on the full credential-probing chain. Set `ManagedIdentityClientId` to the client ID of your user-assigned managed identity — it is applied to both App Configuration and Key Vault:
+
+```json
+{
+  "AzureAppConfiguration": {
+    "Endpoint": "https://myconfig.azconfig.io",
+    "ManagedIdentityClientId": "00000000-0000-0000-0000-000000000000"
+  }
+}
+```
+
+**Secret refresh.** A Key Vault reference URI in App Configuration is stable, but the underlying secret may be rotated. Set `KeyVault:SecretRefreshInterval` to periodically reload secrets from Key Vault (minimum 1 minute; otherwise secrets are cached for the application lifetime). This works alongside — and independently of — the Sentinel-based configuration refresh.
+
+> **Important:** If App Configuration contains Key Vault references but resolution is disabled (`KeyVault:Enabled = false`) or the credential cannot access the vault, the provider **throws at startup**. Either grant access, disable the offending references, or supply a custom secret resolver.
+
+**Grant access to Key Vault.** The identity running the platform must be able to read the referenced secrets. Assign the **Key Vault Secrets User** role to the app's managed identity (or developer account) on the target key vault:
+
+```azurecli
+az role assignment create \
+  --role "Key Vault Secrets User" \
+  --scope /subscriptions/<subscriptionId>/resourceGroups/<group>/providers/Microsoft.KeyVault/vaults/<vault-name> \
+  --assignee <managed-identity-or-user>
+```
+
+> **Note:** If your Key Vault references span multiple vaults that require different credentials, the single shared credential is not sufficient. In that case register per-vault `SecretClient` instances via `keyVaultOptions.Register(...)` or supply a custom resolver with `keyVaultOptions.SetSecretResolver(...)`. See the [.NET provider reference](https://learn.microsoft.com/en-us/azure/azure-app-configuration/reference-dotnet-provider#key-vault-reference).
 
 ### Configuration refresh
 
@@ -132,8 +245,10 @@ To enable verbose logging for troubleshooting, add the following to `appsettings
 | Information | Azure App Configuration is disabled via configuration | `Enabled` is `false` |
 | Warning | Azure App Configuration is not configured | No `ConnectionString` or `Endpoint` provided |
 | Debug | Connecting to Azure App Configuration using connection string | Connection string auth selected |
-| Debug | Connecting to Azure App Configuration using DefaultAzureCredential at endpoint: {Endpoint} | Managed Identity auth selected |
+| Debug | Connecting to Azure App Configuration using {CredentialType} at {EndpointCount} endpoint(s): {Endpoints} | Entra ID auth selected |
+| Debug | Azure Key Vault reference resolution enabled. {SecretRefreshInterval} | `KeyVault:Enabled` is `true` |
 | Debug | Azure App Configuration configured. {SentinelKey}, {KeyPrefix}, {RefreshInterval} | Provider successfully registered |
+| Error | Failed to load Azure App Configuration. The platform will continue without it | Provider failed to load (`Optional` is `true`) |
 | Information | Azure App Configuration middleware is active. AuthMethod={AuthMethod} | Middleware pipeline is ready |
 
 ## Documentation
@@ -141,7 +256,11 @@ To enable verbose logging for troubleshooting, add the following to `appsettings
 - [Azure App Configuration overview](https://learn.microsoft.com/en-us/azure/azure-app-configuration/overview)
 - [Use dynamic configuration in ASP.NET Core](https://learn.microsoft.com/en-us/azure/azure-app-configuration/enable-dynamic-configuration-aspnet-core)
 - [Azure App Configuration best practices](https://learn.microsoft.com/en-us/azure/azure-app-configuration/howto-best-practices)
+- [Enable geo-replication](https://learn.microsoft.com/en-us/azure/azure-app-configuration/howto-geo-replication)
+- [Resiliency and disaster recovery](https://learn.microsoft.com/en-us/azure/azure-app-configuration/concept-disaster-recovery)
 - [Use managed identities to access App Configuration](https://learn.microsoft.com/en-us/azure/azure-app-configuration/howto-integrate-azure-managed-service-identity)
+- [Use Key Vault references in an ASP.NET Core app](https://learn.microsoft.com/en-us/azure/azure-app-configuration/use-key-vault-references-dotnet-core)
+- [Reload secrets and certificates from Key Vault automatically](https://learn.microsoft.com/en-us/azure/azure-app-configuration/reload-key-vault-secrets-dotnet)
 
 ## References
 
