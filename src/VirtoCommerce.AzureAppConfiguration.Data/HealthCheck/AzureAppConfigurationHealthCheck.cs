@@ -1,12 +1,13 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Data.AppConfiguration;
-using Azure.Identity;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using VirtoCommerce.AzureAppConfiguration.Core;
+using VirtoCommerce.AzureAppConfiguration.Data.Extensions;
 
 namespace VirtoCommerce.AzureAppConfiguration.Data.HealthCheck;
 
@@ -25,7 +26,7 @@ public class AzureAppConfigurationHealthCheck : IHealthCheck
 
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
-        if (!_options.IsConfigured)
+        if (!_options.IsConfigured())
         {
             return HealthCheckResult.Healthy("Azure App Configuration is not configured");
         }
@@ -33,6 +34,7 @@ public class AzureAppConfigurationHealthCheck : IHealthCheck
         try
         {
             var client = CreateClient();
+
             // Perform a lightweight read to verify connectivity
             await client.GetConfigurationSettingsAsync(new SettingSelector { KeyFilter = _options.SentinelKey }, cancellationToken)
                 .AsPages()
@@ -50,11 +52,15 @@ public class AzureAppConfigurationHealthCheck : IHealthCheck
 
     private ConfigurationClient CreateClient()
     {
-        if (_options.HasConnectionString)
+        if (_options.HasConnectionString())
         {
             return new ConfigurationClient(_options.ConnectionString);
         }
 
-        return new ConfigurationClient(new Uri(_options.Endpoint), new DefaultAzureCredential());
+        // Use the most preferred replica endpoint and the same credential as the configuration provider,
+        // so the health check reflects the identity the application actually authenticates with.
+        var endpoint = _options.GetEndpoints().First();
+
+        return new ConfigurationClient(new Uri(endpoint), AzureCredentialFactory.Create(_options));
     }
 }

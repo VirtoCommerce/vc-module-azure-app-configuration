@@ -339,3 +339,4 @@ dist/
 **/Properties/launchSettings.json
 /.claude
 /.claude/settings.local.json
+/.serena
